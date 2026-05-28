@@ -1,18 +1,49 @@
 import discord
 from discord.ext import commands
-import os
 from dotenv import load_dotenv
+
+from flask import Flask
+from threading import Thread
+
+import os
+
+# =========================
+# LOAD ENV
+# =========================
 
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
-intents = discord.Intents.default()
-intents.message_content = True
-
-# Replace with your Discord Server ID for instant command syncing
+# Put your test server ID here
 TEST_GUILD_ID = 1366110873248071801
 
+# =========================
+# FLASK SERVER FOR RENDER
+# =========================
+
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Economy Bot is Online!"
+
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(
+        host="0.0.0.0",
+        port=port
+    )
+
+Thread(target=run_web, daemon=True).start()
+
+# =========================
+# DISCORD BOT
+# =========================
+
+intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
 
 class EconomyBot(commands.Bot):
     def __init__(self):
@@ -27,34 +58,45 @@ class EconomyBot(commands.Bot):
         print("Loading cogs...")
 
         for filename in os.listdir("./cogs"):
+
             if filename.endswith(".py"):
+
                 try:
-                    await self.load_extension(f"cogs.{filename[:-3]}")
-                    print(f"✅ Loaded {filename}")
+                    await self.load_extension(
+                        f"cogs.{filename[:-3]}"
+                    )
+
+                    print(
+                        f"✅ Loaded {filename}"
+                    )
 
                 except Exception as e:
-                    print(f"❌ Failed to load {filename}")
+
+                    print(
+                        f"❌ Failed loading {filename}"
+                    )
+
                     print(e)
 
         print("All cogs loaded.")
 
 bot = EconomyBot()
 
+# =========================
+# SYNC GLOBAL
+# =========================
 
-# ==========================
-# GLOBAL SYNC
-# ==========================
-
-@bot.command(name="sync")
+@bot.command()
 @commands.is_owner()
 async def sync(ctx):
 
     try:
+
         synced = await bot.tree.sync()
 
         embed = discord.Embed(
-            title="✅ Global Sync Complete",
-            description=f"Successfully synced **{len(synced)}** slash commands globally.",
+            title="✅ Commands Synced",
+            description=f"Synced **{len(synced)}** global commands.",
             color=discord.Color.green()
         )
 
@@ -62,165 +104,144 @@ async def sync(ctx):
 
     except Exception as e:
 
-        embed = discord.Embed(
-            title="❌ Sync Failed",
-            description=f"```py\n{e}\n```",
-            color=discord.Color.red()
+        await ctx.send(
+            f"❌ Sync Failed\n```py\n{e}\n```"
         )
 
-        await ctx.send(embed=embed)
+# =========================
+# SYNC GUILD
+# =========================
 
-
-# ==========================
-# TEST SERVER SYNC
-# ==========================
-
-@bot.command(name="syncguild")
+@bot.command()
 @commands.is_owner()
 async def syncguild(ctx):
 
     try:
 
-        guild = discord.Object(id=TEST_GUILD_ID)
+        guild = discord.Object(
+            id=TEST_GUILD_ID
+        )
 
-        bot.tree.copy_global_to(guild=guild)
+        bot.tree.copy_global_to(
+            guild=guild
+        )
 
-        synced = await bot.tree.sync(guild=guild)
+        synced = await bot.tree.sync(
+            guild=guild
+        )
 
         embed = discord.Embed(
-            title="⚡ Instant Guild Sync",
-            description=f"Successfully synced **{len(synced)}** commands to this server.",
-            color=discord.Color.blue()
+            title="⚡ Guild Sync Complete",
+            description=f"Synced **{len(synced)}** commands instantly.",
+            color=discord.Color.blurple()
         )
 
         await ctx.send(embed=embed)
 
     except Exception as e:
 
-        embed = discord.Embed(
-            title="❌ Guild Sync Failed",
-            description=f"```py\n{e}\n```",
-            color=discord.Color.red()
+        await ctx.send(
+            f"❌ Guild Sync Failed\n```py\n{e}\n```"
         )
 
-        await ctx.send(embed=embed)
-
-
-# ==========================
+# =========================
 # RELOAD COG
-# ==========================
+# =========================
 
-@bot.command(name="reload")
+@bot.command()
 @commands.is_owner()
 async def reload(ctx, cog: str):
 
     try:
 
-        await bot.reload_extension(f"cogs.{cog}")
-
-        embed = discord.Embed(
-            title="🔄 Cog Reloaded",
-            description=f"Successfully reloaded **{cog}**.",
-            color=discord.Color.green()
+        await bot.reload_extension(
+            f"cogs.{cog}"
         )
 
-        await ctx.send(embed=embed)
+        await ctx.send(
+            f"✅ Reloaded `{cog}`"
+        )
 
     except Exception as e:
 
-        embed = discord.Embed(
-            title="❌ Reload Failed",
-            description=f"```py\n{e}\n```",
-            color=discord.Color.red()
+        await ctx.send(
+            f"❌ Reload Failed\n```py\n{e}\n```"
         )
 
-        await ctx.send(embed=embed)
-
-
-# ==========================
+# =========================
 # LOAD COG
-# ==========================
+# =========================
 
-@bot.command(name="load")
+@bot.command()
 @commands.is_owner()
 async def load(ctx, cog: str):
 
     try:
 
-        await bot.load_extension(f"cogs.{cog}")
-
-        embed = discord.Embed(
-            title="📥 Cog Loaded",
-            description=f"Successfully loaded **{cog}**.",
-            color=discord.Color.green()
+        await bot.load_extension(
+            f"cogs.{cog}"
         )
 
-        await ctx.send(embed=embed)
+        await ctx.send(
+            f"✅ Loaded `{cog}`"
+        )
 
     except Exception as e:
 
-        embed = discord.Embed(
-            title="❌ Load Failed",
-            description=f"```py\n{e}\n```",
-            color=discord.Color.red()
+        await ctx.send(
+            f"❌ Load Failed\n```py\n{e}\n```"
         )
 
-        await ctx.send(embed=embed)
-
-
-# ==========================
+# =========================
 # UNLOAD COG
-# ==========================
+# =========================
 
-@bot.command(name="unload")
+@bot.command()
 @commands.is_owner()
 async def unload(ctx, cog: str):
 
     try:
 
-        await bot.unload_extension(f"cogs.{cog}")
-
-        embed = discord.Embed(
-            title="📤 Cog Unloaded",
-            description=f"Successfully unloaded **{cog}**.",
-            color=discord.Color.orange()
+        await bot.unload_extension(
+            f"cogs.{cog}"
         )
 
-        await ctx.send(embed=embed)
+        await ctx.send(
+            f"✅ Unloaded `{cog}`"
+        )
 
     except Exception as e:
 
-        embed = discord.Embed(
-            title="❌ Unload Failed",
-            description=f"```py\n{e}\n```",
-            color=discord.Color.red()
+        await ctx.send(
+            f"❌ Unload Failed\n```py\n{e}\n```"
         )
 
-        await ctx.send(embed=embed)
-
-
-# ==========================
+# =========================
 # READY EVENT
-# ==========================
+# =========================
 
 @bot.event
 async def on_ready():
 
     print("\n==========================")
-    print(f"Logged in as: {bot.user}")
+    print(f"Logged in as {bot.user}")
     print(f"Bot ID: {bot.user.id}")
     print("==========================\n")
 
-    await bot.change_presence(
-        activity=discord.Game(
-            name="💰 Economy Simulator"
+    try:
+
+        await bot.change_presence(
+            activity=discord.Game(
+                name="💰 Economy Simulator"
+            )
         )
-    )
 
+    except:
+        pass
 
-# ==========================
-# ERROR HANDLER
-# ==========================
+# =========================
+# OWNER ERRORS
+# =========================
 
 @sync.error
 @syncguild.error
@@ -229,12 +250,17 @@ async def on_ready():
 @unload.error
 async def owner_error(ctx, error):
 
-    if isinstance(error, commands.NotOwner):
-        await ctx.send("❌ Only the bot owner can use this command.")
+    if isinstance(
+        error,
+        commands.NotOwner
+    ):
+        await ctx.send(
+            "❌ Only the bot owner can use this command."
+        )
 
-
-# ==========================
+# =========================
 # START BOT
-# ==========================
+# =========================
 
-bot.run(TOKEN)
+if __name__ == "__main__":
+    bot.run(TOKEN)
