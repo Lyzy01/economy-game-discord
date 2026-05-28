@@ -11,7 +11,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 # Replace with your Discord Server ID for instant command syncing
-TEST_GUILD_ID = 123456789012345678
+TEST_GUILD_ID = 1366110873248071801
 
 
 class EconomyBot(commands.Bot):
